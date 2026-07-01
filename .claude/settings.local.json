@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Monte Carlo Simulation Antigravity Claude\\\\public\" -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Folder\"}else{\"File\"}}} | Format-Table -AutoSize)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Monte Carlo Simulation Antigravity Claude\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(dir /s /b)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Monte Carlo Simulation Antigravity Claude\" -Depth 3 | Select-Object Name, @{N=\"Type\";E={if\\($_.PSIsContainer\\){\"Folder\"}else{\"File\"}}} | Sort-Object Name)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Monte Carlo Simulation Antigravity Claude\" | Select-Object Name, @{N=\"Type\";E={if\\($_.PSIsContainer\\){\"Folder\"}else{\"File\"}}} | Sort-Object Name)"
+    ]
+  }
+}
