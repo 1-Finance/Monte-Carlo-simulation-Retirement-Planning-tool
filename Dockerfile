@@ -26,5 +26,4 @@ ENV NODE_ENV=production
 ENV DATABASE_PATH=/data/database.sqlite
 
 EXPOSE 3001
-VOLUME ["/data"]
 CMD ["npm", "run", "start"]
