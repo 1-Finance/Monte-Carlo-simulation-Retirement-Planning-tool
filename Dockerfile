@@ -12,6 +12,7 @@ RUN npm run build
 
 # Stage 3: Production runtime — no build tools, small image
 FROM node:22-alpine AS runner
+RUN mkdir -p /data
 WORKDIR /app
 # node_modules from stage 1 (includes tsx + compiled sqlite3.node, both built on Alpine)
 COPY --from=deps /app/node_modules ./node_modules
