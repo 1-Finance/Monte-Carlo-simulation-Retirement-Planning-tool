@@ -128,11 +128,15 @@ export async function createApp() {
     }
   });
 
-  // Handle aborted requests (client disconnects mid-upload) — Express 5 throws these as errors
+  // Handle aborted requests and payload-too-large errors (Express 5 surfaces these as thrown errors)
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     if (res.headersSent) return;
+    if (err.status === 413 || err.type === 'entity.too.large') {
+      res.status(413).json({ error: 'Payload too large' });
+      return;
+    }
     if (err.status === 400 || err.type === 'request.aborted' || err.message === 'request aborted') {
-      res.status(400).json({ error: 'Request aborted or body too large' });
+      res.status(400).json({ error: 'Request aborted' });
       return;
     }
     console.error('Unhandled server error:', err);
