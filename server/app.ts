@@ -11,7 +11,7 @@ export async function createApp() {
 
   const app = express();
   app.use(cors());
-  app.use(express.json({ limit: '250mb' }));
+  app.use(express.json({ limit: '10mb' }));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
@@ -126,6 +126,17 @@ export async function createApp() {
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
+  });
+
+  // Handle aborted requests (client disconnects mid-upload) — Express 5 throws these as errors
+  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    if (res.headersSent) return;
+    if (err.status === 400 || err.type === 'request.aborted' || err.message === 'request aborted') {
+      res.status(400).json({ error: 'Request aborted or body too large' });
+      return;
+    }
+    console.error('Unhandled server error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   });
 
   // Serve built frontend in production (Node/standalone only — Netlify serves dist/ via its own CDN)

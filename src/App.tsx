@@ -503,9 +503,11 @@ function App() {
 
           const effectiveProfile = simulationType === 'swr' ? '__TYPE_2_SWR__' : selectedProfile;
           if (activeUserId && effectiveProfile) {
+            // yearlySummary (~34MB) stays in-memory for rank adjustment this session
+            // but is never persisted — too large for both localStorage and the server
             const simPayload = {
               chartData: payloadChartData,
-              yearlySummary: simulationType === 'swr' ? [] : allYearlySummary,
+              yearlySummary: [],
               swrResults: summaryResults,
             };
             lsSet(`mc_sim_${activeUserId}_${effectiveProfile}`, simPayload);
