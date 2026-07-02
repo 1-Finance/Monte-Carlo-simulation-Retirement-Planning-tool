@@ -24,11 +24,6 @@ export async function saveQuarterlyReturns(data: QuarterlyReturnsResponse['data'
   if (!res.ok) throw new Error('Failed to save quarterly returns');
 }
 
-export async function deleteQuarterlyReturns(): Promise<void> {
-  const res = await fetch(`${BASE}/quarterly-returns`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to delete quarterly returns');
-}
-
 export interface ParametersDTO {
   age?: number;
   withdrawal_start_age?: number;

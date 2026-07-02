@@ -15,15 +15,15 @@ import {
   generateResultsExcel,
   parseResultsExcel,
   generateSampleExpenseExcel,
+  generateQuarterlyReturnsExcel,
 } from './engine/excelParser';
 import { calculateChartData, type ChartData } from './engine/chartCalculations';
 import type { AssetReturns, SimulationParams, YearlySummaryData } from './engine/simulation';
-import type { UserExpenseRow } from './engine/excelParser';
+import type { UserExpenseRow, QuarterlyReturnRow } from './engine/excelParser';
 import type { WorkerResponse } from './engine/simulationWorker';
 import {
   fetchQuarterlyReturns,
   saveQuarterlyReturns,
-  deleteQuarterlyReturns,
   fetchParameters,
   saveParameters,
   fetchExpenseProfiles,
@@ -39,9 +39,12 @@ function App() {
 
   // ── Data state ──
   const [assetReturns, setAssetReturns] = useState<AssetReturns | null>(null);
+  const [quarterlyData, setQuarterlyData] = useState<QuarterlyReturnRow[] | null>(null);
   const [quarterlyFileName, setQuarterlyFileName] = useState<string>('');
   const [quarterlyError, setQuarterlyError] = useState<string | null>(null);
   const [viewingQuarterly, setViewingQuarterly] = useState(false);
+  const [editingQuarterly, setEditingQuarterly] = useState(false);
+  const [editRows, setEditRows] = useState<QuarterlyReturnRow[]>([]);
 
   const [expenseProfiles, setExpenseProfiles] = useState<Array<{ name: string; data: UserExpenseRow[]; dict: Record<number, number> }>>([]);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
@@ -59,6 +62,7 @@ function App() {
 
     // Clear the previous session's data immediately so a user switch never shows stale leftovers while fetching
     setAssetReturns(null);
+    setQuarterlyData(null);
     setQuarterlyFileName('');
 
     const applyParams = (p: any) => {
@@ -107,15 +111,16 @@ function App() {
       }
     })();
 
-    const applyQuarterly = (data: any[], fileName: string) => {
+    const applyQuarterly = (data: QuarterlyReturnRow[], fileName: string) => {
       const ar = {
-        equity: data.map((r: any) => r.equity),
-        realEstate: data.map((r: any) => r.realEstate),
-        commodity: data.map((r: any) => r.commodity),
-        debt: data.map((r: any) => r.debt),
-        alternative: data.map((r: any) => r.alternative),
+        equity: data.map((r) => r.equity),
+        realEstate: data.map((r) => r.realEstate),
+        commodity: data.map((r) => r.commodity),
+        debt: data.map((r) => r.debt),
+        alternative: data.map((r) => r.alternative),
       };
       setAssetReturns(ar);
+      setQuarterlyData(data);
       setQuarterlyFileName(fileName);
     };
 
@@ -128,6 +133,7 @@ function App() {
           lsSet('mc_quarterly_global', { data: res.data, fileName: res.fileName });
         } else {
           setAssetReturns(null);
+          setQuarterlyData(null);
           setQuarterlyFileName('');
           lsDel('mc_quarterly_global');
         }
@@ -139,6 +145,7 @@ function App() {
           toast.warning('Using locally cached quarterly returns — server unreachable');
         } else {
           setAssetReturns(null);
+          setQuarterlyData(null);
           setQuarterlyFileName('');
         }
       }
@@ -361,6 +368,7 @@ function App() {
       setQuarterlyError(null);
       const { assetReturns: ar, data } = parseQuarterlyReturnsExcel(buffer);
       setAssetReturns(ar);
+      setQuarterlyData(data);
       setQuarterlyFileName(fileName);
       lsSet('mc_quarterly_global', { data, fileName });
       saveQuarterlyReturns(data, fileName).catch(() => {
@@ -373,6 +381,44 @@ function App() {
       toast.error(msg);
     }
   }, []);
+
+  const handleOpenEditQuarterly = useCallback(() => {
+    if (!quarterlyData) return;
+    setEditRows(quarterlyData.map(row => ({ ...row })));
+    setEditingQuarterly(true);
+  }, [quarterlyData]);
+
+  const handleSaveQuarterlyEdit = useCallback(() => {
+    const ar: AssetReturns = {
+      equity: editRows.map(r => r.equity),
+      realEstate: editRows.map(r => r.realEstate),
+      commodity: editRows.map(r => r.commodity),
+      debt: editRows.map(r => r.debt),
+      alternative: editRows.map(r => r.alternative),
+    };
+    setAssetReturns(ar);
+    setQuarterlyData(editRows);
+    lsSet('mc_quarterly_global', { data: editRows, fileName: quarterlyFileName });
+    saveQuarterlyReturns(editRows, quarterlyFileName).catch(() => {
+      toast.warning('Saved locally, but failed to sync quarterly returns to server');
+    });
+    setEditingQuarterly(false);
+    toast.success('Quarterly returns updated');
+  }, [editRows, quarterlyFileName]);
+
+  const handleDownloadQuarterlyReturns = useCallback(() => {
+    if (!quarterlyData || quarterlyData.length === 0) return;
+    const blob = generateQuarterlyReturnsExcel(quarterlyData);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = quarterlyFileName || `quarterly_returns_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Quarterly returns downloaded');
+  }, [quarterlyData, quarterlyFileName]);
 
   const handleExpenseFile = useCallback((buffer: ArrayBuffer, fileName: string) => {
     try {
@@ -788,14 +834,9 @@ function App() {
                 isLoaded={!!assetReturns}
                 loadedFileName={quarterlyFileName}
                 onView={() => setViewingQuarterly(true)}
-                onClear={() => {
-                  setAssetReturns(null);
-                  setQuarterlyFileName('');
-                  lsDel('mc_quarterly_global');
-                  deleteQuarterlyReturns().catch(() => {
-                    toast.warning('Cleared locally, but failed to delete from server');
-                  });
-                }}
+                onEdit={handleOpenEditQuarterly}
+                onDownload={handleDownloadQuarterlyReturns}
+                replaceable
                 error={quarterlyError}
               />
 
@@ -1091,6 +1132,80 @@ function App() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Quarterly Returns Modal */}
+      {editingQuarterly && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          }}
+          onClick={() => setEditingQuarterly(false)}
+        >
+          <div
+            className="glass-card-static"
+            style={{
+              width: '100%', maxWidth: 760, maxHeight: '80vh',
+              padding: '1.5rem', overflow: 'auto',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h4>Edit Quarterly Returns ({editRows.length} records)</h4>
+              <button className="btn-icon" onClick={() => setEditingQuarterly(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th style={{ textAlign: 'right' }}>Equity %</th>
+                  <th style={{ textAlign: 'right' }}>Real Estate %</th>
+                  <th style={{ textAlign: 'right' }}>Commodity %</th>
+                  <th style={{ textAlign: 'right' }}>Debt %</th>
+                  <th style={{ textAlign: 'right' }}>Alternative %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {editRows.map((row, i) => (
+                  <tr key={i}>
+                    <td>
+                      <input
+                        type="text"
+                        className="input-field"
+                        style={{ width: 110, padding: '0.25rem 0.5rem' }}
+                        value={row.date}
+                        onChange={(e) => setEditRows(prev => prev.map((r, idx) => idx === i ? { ...r, date: e.target.value } : r))}
+                      />
+                    </td>
+                    {(['equity', 'realEstate', 'commodity', 'debt', 'alternative'] as const).map((field) => (
+                      <td key={field} style={{ textAlign: 'right' }}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="input-field"
+                          style={{ width: 90, padding: '0.25rem 0.5rem', textAlign: 'right' }}
+                          value={row[field] * 100}
+                          onChange={(e) => {
+                            const pct = e.target.value === '' ? 0 : Number(e.target.value);
+                            setEditRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: pct / 100 } : r));
+                          }}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
+              <button className="btn-secondary" onClick={() => setEditingQuarterly(false)}>Cancel</button>
+              <button className="btn-primary" onClick={handleSaveQuarterlyEdit}>Save Changes</button>
+            </div>
           </div>
         </div>
       )}

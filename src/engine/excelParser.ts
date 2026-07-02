@@ -75,6 +75,30 @@ export function parseQuarterlyReturnsExcel(file: ArrayBuffer): {
 }
 
 /**
+ * Generate an Excel file from the current Quarterly Returns dataset.
+ * Columns match parseQuarterlyReturnsExcel so a downloaded file can be re-uploaded as-is.
+ */
+export function generateQuarterlyReturnsExcel(data: QuarterlyReturnRow[]): Blob {
+  const transformedData = data.map(row => ({
+    'Date': row.date,
+    'Equity': row.equity,
+    'Real Estate': row.realEstate,
+    'Commodity': row.commodity,
+    'Debt': row.debt,
+    'Alternative Investments': row.alternative,
+  }));
+
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(transformedData);
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Quarterly Returns');
+
+  const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+  return new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+}
+
+/**
  * Parse a User Expenses Excel file
  * Expected columns: Age, Total Withdrawal
  */

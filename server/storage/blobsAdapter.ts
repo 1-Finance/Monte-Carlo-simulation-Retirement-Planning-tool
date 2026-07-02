@@ -23,10 +23,6 @@ export class BlobsStorageAdapter implements StorageAdapter {
     await quarterlyStore().setJSON(GLOBAL_QUARTERLY_KEY, payload);
   }
 
-  async deleteQuarterlyReturns(): Promise<void> {
-    await quarterlyStore().delete(GLOBAL_QUARTERLY_KEY);
-  }
-
   async getExpenseProfiles(userId: string): Promise<ExpenseProfile[]> {
     const index = (await expenseStore().get(`${userId}/_index`, { type: 'json' })) as string[] | null;
     if (!index || index.length === 0) return [];

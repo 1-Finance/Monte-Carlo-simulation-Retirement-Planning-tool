@@ -46,10 +46,6 @@ export class SqliteStorageAdapter implements StorageAdapter {
     }
   }
 
-  async deleteQuarterlyReturns(): Promise<void> {
-    await this.db.run('DELETE FROM quarterly_returns');
-  }
-
   async getExpenseProfiles(userId: string): Promise<ExpenseProfile[]> {
     const profiles = await this.db.all('SELECT * FROM user_expenses_profiles WHERE user_id = ?', [userId]);
     const result: ExpenseProfile[] = [];

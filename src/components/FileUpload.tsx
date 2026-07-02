@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X, Eye } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Eye, Pencil, Download } from 'lucide-react';
 
 interface FileUploadProps {
   label: string;
@@ -8,8 +8,10 @@ interface FileUploadProps {
   onFileLoaded: (buffer: ArrayBuffer, fileName: string) => void;
   isLoaded: boolean;
   loadedFileName?: string;
-  onClear?: () => void;
   onView?: () => void;
+  onEdit?: () => void;
+  onDownload?: () => void;
+  replaceable?: boolean;
   error?: string | null;
 }
 
@@ -20,8 +22,10 @@ export function FileUpload({
   onFileLoaded,
   isLoaded,
   loadedFileName,
-  onClear,
   onView,
+  onEdit,
+  onDownload,
+  replaceable,
   error,
 }: FileUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -68,6 +72,14 @@ export function FileUpload({
         {description}
       </p>
 
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        onChange={handleChange}
+        style={{ display: 'none' }}
+      />
+
       {isLoaded ? (
         <div
           style={{
@@ -94,9 +106,19 @@ export function FileUpload({
               <Eye size={16} />
             </button>
           )}
-          {onClear && (
-            <button className="btn-icon" onClick={onClear} title="Remove file">
-              <X size={16} />
+          {onEdit && (
+            <button className="btn-icon" onClick={onEdit} title="Edit data">
+              <Pencil size={16} />
+            </button>
+          )}
+          {onDownload && (
+            <button className="btn-icon" onClick={onDownload} title="Download file">
+              <Download size={16} />
+            </button>
+          )}
+          {replaceable && (
+            <button className="btn-icon" onClick={() => inputRef.current?.click()} title="Upload new file (replaces current)">
+              <Upload size={16} />
             </button>
           )}
         </div>
@@ -108,13 +130,6 @@ export function FileUpload({
           onDrop={handleDrop}
           onClick={() => inputRef.current?.click()}
         >
-          <input
-            ref={inputRef}
-            type="file"
-            accept={accept}
-            onChange={handleChange}
-            style={{ display: 'none' }}
-          />
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
             <div
               style={{

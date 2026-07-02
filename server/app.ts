@@ -87,15 +87,6 @@ export async function createApp() {
     }
   });
 
-  app.delete('/api/quarterly-returns', async (_req, res) => {
-    try {
-      await storage.deleteQuarterlyReturns();
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   // --- User Expenses ---
 
   app.get('/api/expenses/:userId', async (req, res) => {

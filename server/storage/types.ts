@@ -32,9 +32,9 @@ export interface SavedSimulationPayload {
 
 export interface StorageAdapter {
   // Quarterly returns are shared globally across all users, not scoped per user.
+  // No delete: uploading a new file always replaces the existing one instead.
   getQuarterlyReturns(): Promise<QuarterlyReturnsPayload | null>;
   saveQuarterlyReturns(payload: QuarterlyReturnsPayload): Promise<void>;
-  deleteQuarterlyReturns(): Promise<void>;
 
   getExpenseProfiles(userId: string): Promise<ExpenseProfile[]>;
   saveExpenseProfile(userId: string, profile: ExpenseProfile): Promise<void>;
