@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Eye, Pencil, Download } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Eye, Download } from 'lucide-react';
 
 interface FileUploadProps {
   label: string;
@@ -9,7 +9,6 @@ interface FileUploadProps {
   isLoaded: boolean;
   loadedFileName?: string;
   onView?: () => void;
-  onEdit?: () => void;
   onDownload?: () => void;
   replaceable?: boolean;
   error?: string | null;
@@ -23,7 +22,6 @@ export function FileUpload({
   isLoaded,
   loadedFileName,
   onView,
-  onEdit,
   onDownload,
   replaceable,
   error,
@@ -104,11 +102,6 @@ export function FileUpload({
           {onView && (
             <button className="btn-icon" onClick={onView} title="View data">
               <Eye size={16} />
-            </button>
-          )}
-          {onEdit && (
-            <button className="btn-icon" onClick={onEdit} title="Edit data">
-              <Pencil size={16} />
             </button>
           )}
           {onDownload && (
