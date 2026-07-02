@@ -48,6 +48,11 @@ function App() {
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
   const [expenseError, setExpenseError] = useState<string | null>(null);
 
+  // True once the parameters fetch for the current login has settled — guards the
+  // auto-save effect so it never overwrites a user's saved parameters with transient
+  // in-flight state before their real data has finished loading.
+  const [paramsReady, setParamsReady] = useState(false);
+
   // ── localStorage helpers ──
   const lsGet = (key: string) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } };
   const lsSet = (key: string, val: any) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch { console.warn('localStorage write failed (quota exceeded?)'); } };
@@ -62,6 +67,7 @@ function App() {
     setAssetReturns(null);
     setQuarterlyData(null);
     setQuarterlyFileName('');
+    setParamsReady(false);
 
     const applyParams = (p: any) => {
       setAge(p.age);
@@ -97,6 +103,7 @@ function App() {
           resetParams();
           lsDel(`mc_params_${activeUserId}`);
         }
+        setParamsReady(true);
       } catch {
         const saved = lsGet(`mc_params_${activeUserId}`);
         if (cancelled) return;
@@ -106,6 +113,7 @@ function App() {
         } else {
           resetParams();
         }
+        setParamsReady(true);
       }
     })();
 
@@ -181,16 +189,16 @@ function App() {
 
 
   // ── Parameter state ──
-  const [age, setAge] = useState<number | ''>(42);
-  const [withdrawalStartAge, setWithdrawalStartAge] = useState<number | ''>(42);
-  const [withdrawalAmount, setWithdrawalAmount] = useState<number | ''>(3);
-  const [withdrawalYear, setWithdrawalYear] = useState<number | ''>(2034);
-  const [initialCorpus, setInitialCorpus] = useState<number | ''>(58994959);
-  const [equityAllocation, setEquityAllocation] = useState<number | ''>(0.52);
-  const [realEstateAllocation, setRealEstateAllocation] = useState<number | ''>(0.14);
-  const [passiveAllocation, setPassiveAllocation] = useState<number | ''>(0);
-  const [debtAllocation, setDebtAllocation] = useState<number | ''>(0.23);
-  const [altAllocation, setAltAllocation] = useState<number | ''>(0.11);
+  const [age, setAge] = useState<number | ''>('');
+  const [withdrawalStartAge, setWithdrawalStartAge] = useState<number | ''>('');
+  const [withdrawalAmount, setWithdrawalAmount] = useState<number | ''>('');
+  const [withdrawalYear, setWithdrawalYear] = useState<number | ''>('');
+  const [initialCorpus, setInitialCorpus] = useState<number | ''>('');
+  const [equityAllocation, setEquityAllocation] = useState<number | ''>('');
+  const [realEstateAllocation, setRealEstateAllocation] = useState<number | ''>('');
+  const [passiveAllocation, setPassiveAllocation] = useState<number | ''>('');
+  const [debtAllocation, setDebtAllocation] = useState<number | ''>('');
+  const [altAllocation, setAltAllocation] = useState<number | ''>('');
   const [simulationType, setSimulationType] = useState<'expenses' | 'swr'>('expenses');
   const [activeSWR, setActiveSWR] = useState<number>(0.04);
   const [swrInitial, setSwrInitial] = useState<number | ''>(4);
@@ -243,7 +251,7 @@ function App() {
 
   // ── Auto-save parameters to server (per user ID), with localStorage as an offline cache ──
   useEffect(() => {
-    if (!activeUserId) return;
+    if (!activeUserId || !paramsReady) return;
     const timeoutId = setTimeout(() => {
       const params = {
         age: Number(age) || 0,
@@ -264,7 +272,7 @@ function App() {
     }, 1000);
     return () => clearTimeout(timeoutId);
   }, [
-    activeUserId, age, withdrawalStartAge, withdrawalAmount, withdrawalYear, initialCorpus,
+    activeUserId, paramsReady, age, withdrawalStartAge, withdrawalAmount, withdrawalYear, initialCorpus,
     equityAllocation, realEstateAllocation, passiveAllocation, debtAllocation, altAllocation
   ]);
 

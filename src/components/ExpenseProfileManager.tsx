@@ -40,7 +40,6 @@ export function ExpenseProfileManager({ profiles, selectedProfile, onSelect, onD
             <div
               key={profile.name}
               onClick={() => onSelect(profile.name)}
-              onMouseEnter={() => onSelect(profile.name)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
