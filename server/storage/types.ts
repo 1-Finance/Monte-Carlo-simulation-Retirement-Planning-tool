@@ -31,9 +31,10 @@ export interface SavedSimulationPayload {
 }
 
 export interface StorageAdapter {
-  getQuarterlyReturns(userId: string): Promise<QuarterlyReturnsPayload | null>;
-  saveQuarterlyReturns(userId: string, payload: QuarterlyReturnsPayload): Promise<void>;
-  deleteQuarterlyReturns(userId: string): Promise<void>;
+  // Quarterly returns are shared globally across all users, not scoped per user.
+  getQuarterlyReturns(): Promise<QuarterlyReturnsPayload | null>;
+  saveQuarterlyReturns(payload: QuarterlyReturnsPayload): Promise<void>;
+  deleteQuarterlyReturns(): Promise<void>;
 
   getExpenseProfiles(userId: string): Promise<ExpenseProfile[]>;
   saveExpenseProfile(userId: string, profile: ExpenseProfile): Promise<void>;

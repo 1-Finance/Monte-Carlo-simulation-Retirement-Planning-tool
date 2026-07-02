@@ -11,17 +11,20 @@ const expenseStore = () => getStore('expense-profiles');
 const simStore = () => getStore('saved-simulations');
 const paramsStore = () => getStore('parameters');
 
+// Quarterly returns are shared globally across all users, so they live under a single fixed key.
+const GLOBAL_QUARTERLY_KEY = 'shared';
+
 export class BlobsStorageAdapter implements StorageAdapter {
-  async getQuarterlyReturns(userId: string): Promise<QuarterlyReturnsPayload | null> {
-    return (await quarterlyStore().get(userId, { type: 'json' })) as QuarterlyReturnsPayload | null;
+  async getQuarterlyReturns(): Promise<QuarterlyReturnsPayload | null> {
+    return (await quarterlyStore().get(GLOBAL_QUARTERLY_KEY, { type: 'json' })) as QuarterlyReturnsPayload | null;
   }
 
-  async saveQuarterlyReturns(userId: string, payload: QuarterlyReturnsPayload): Promise<void> {
-    await quarterlyStore().setJSON(userId, payload);
+  async saveQuarterlyReturns(payload: QuarterlyReturnsPayload): Promise<void> {
+    await quarterlyStore().setJSON(GLOBAL_QUARTERLY_KEY, payload);
   }
 
-  async deleteQuarterlyReturns(userId: string): Promise<void> {
-    await quarterlyStore().delete(userId);
+  async deleteQuarterlyReturns(): Promise<void> {
+    await quarterlyStore().delete(GLOBAL_QUARTERLY_KEY);
   }
 
   async getExpenseProfiles(userId: string): Promise<ExpenseProfile[]> {

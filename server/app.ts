@@ -66,30 +66,30 @@ export async function createApp() {
     }
   });
 
-  // --- Quarterly Returns (per user) ---
+  // --- Quarterly Returns (shared globally across all users) ---
 
-  app.get('/api/quarterly-returns/:userId', async (req, res) => {
+  app.get('/api/quarterly-returns', async (_req, res) => {
     try {
-      const result = await storage.getQuarterlyReturns(req.params.userId);
+      const result = await storage.getQuarterlyReturns();
       res.json(result ?? { data: [] });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.post('/api/quarterly-returns/:userId', async (req, res) => {
+  app.post('/api/quarterly-returns', async (req, res) => {
     try {
       const { data, fileName } = req.body;
-      await storage.saveQuarterlyReturns(req.params.userId, { data, fileName });
+      await storage.saveQuarterlyReturns({ data, fileName });
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.delete('/api/quarterly-returns/:userId', async (req, res) => {
+  app.delete('/api/quarterly-returns', async (_req, res) => {
     try {
-      await storage.deleteQuarterlyReturns(req.params.userId);
+      await storage.deleteQuarterlyReturns();
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

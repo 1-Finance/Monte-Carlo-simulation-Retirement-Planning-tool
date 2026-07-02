@@ -24,6 +24,8 @@ import {
   fetchQuarterlyReturns,
   saveQuarterlyReturns,
   deleteQuarterlyReturns,
+  fetchParameters,
+  saveParameters,
   fetchExpenseProfiles,
   saveExpenseProfile,
   deleteExpenseProfile,
@@ -55,19 +57,19 @@ function App() {
     if (!activeUserId) return;
     let cancelled = false;
 
-    const params = lsGet(`mc_params_${activeUserId}`);
-    if (params) {
-      setAge(params.age);
-      setWithdrawalStartAge(params.withdrawal_start_age);
-      setWithdrawalAmount(params.withdrawal_amount);
-      setWithdrawalYear(params.withdrawal_year);
-      setInitialCorpus(params.initial_corpus);
-      setEquityAllocation(params.equity_allocation);
-      setRealEstateAllocation(params.real_estate_allocation);
-      setPassiveAllocation(params.passive_allocation);
-      setDebtAllocation(params.debt_allocation);
-      setAltAllocation(params.alt_allocation);
-    } else {
+    const applyParams = (p: any) => {
+      setAge(p.age);
+      setWithdrawalStartAge(p.withdrawal_start_age);
+      setWithdrawalAmount(p.withdrawal_amount);
+      setWithdrawalYear(p.withdrawal_year);
+      setInitialCorpus(p.initial_corpus);
+      setEquityAllocation(p.equity_allocation);
+      setRealEstateAllocation(p.real_estate_allocation);
+      setPassiveAllocation(p.passive_allocation);
+      setDebtAllocation(p.debt_allocation);
+      setAltAllocation(p.alt_allocation);
+    };
+    const resetParams = () => {
       setAge('');
       setWithdrawalStartAge('');
       setInitialCorpus('');
@@ -76,7 +78,30 @@ function App() {
       setPassiveAllocation('');
       setDebtAllocation('');
       setAltAllocation('');
-    }
+    };
+
+    (async () => {
+      try {
+        const res = await fetchParameters(activeUserId);
+        if (cancelled) return;
+        if (res && res.age !== undefined && res.age !== null) {
+          applyParams(res);
+          lsSet(`mc_params_${activeUserId}`, { user_id: activeUserId, ...res });
+        } else {
+          resetParams();
+          lsDel(`mc_params_${activeUserId}`);
+        }
+      } catch {
+        const saved = lsGet(`mc_params_${activeUserId}`);
+        if (cancelled) return;
+        if (saved) {
+          applyParams(saved);
+          toast.warning('Using locally cached parameters — server unreachable');
+        } else {
+          resetParams();
+        }
+      }
+    })();
 
     const applyQuarterly = (data: any[], fileName: string) => {
       const ar = {
@@ -92,17 +117,18 @@ function App() {
 
     (async () => {
       try {
-        const res = await fetchQuarterlyReturns(activeUserId);
+        const res = await fetchQuarterlyReturns();
         if (cancelled) return;
         if (res.data?.length > 0) {
           applyQuarterly(res.data, res.fileName || '');
-          lsSet(`mc_quarterly_${activeUserId}`, { data: res.data, fileName: res.fileName });
+          lsSet('mc_quarterly_global', { data: res.data, fileName: res.fileName });
         } else {
           setAssetReturns(null);
           setQuarterlyFileName('');
+          lsDel('mc_quarterly_global');
         }
       } catch {
-        const saved = lsGet(`mc_quarterly_${activeUserId}`);
+        const saved = lsGet('mc_quarterly_global');
         if (cancelled) return;
         if (saved?.data?.length > 0) {
           applyQuarterly(saved.data, saved.fileName);
@@ -206,12 +232,11 @@ function App() {
     }
   }, [simulationType, expenseProfiles, selectedProfile, withdrawalStartAge, initialCorpus, activeSWR]);
 
-  // ── Auto-save parameters to localStorage ──
+  // ── Auto-save parameters to server (per user ID), with localStorage as an offline cache ──
   useEffect(() => {
     if (!activeUserId) return;
     const timeoutId = setTimeout(() => {
-      lsSet(`mc_params_${activeUserId}`, {
-        user_id: activeUserId,
+      const params = {
         age: Number(age) || 0,
         withdrawal_start_age: Number(withdrawalStartAge) || 0,
         withdrawal_amount: Number(withdrawalAmount) || 0,
@@ -222,6 +247,10 @@ function App() {
         passive_allocation: Number(passiveAllocation) || 0,
         debt_allocation: Number(debtAllocation) || 0,
         alt_allocation: Number(altAllocation) || 0,
+      };
+      lsSet(`mc_params_${activeUserId}`, { user_id: activeUserId, ...params });
+      saveParameters(activeUserId, params).catch(() => {
+        toast.warning('Saved locally, but failed to sync parameters to server');
       });
     }, 1000);
     return () => clearTimeout(timeoutId);
@@ -326,19 +355,17 @@ function App() {
       const { assetReturns: ar, data } = parseQuarterlyReturnsExcel(buffer);
       setAssetReturns(ar);
       setQuarterlyFileName(fileName);
-      if (activeUserId) {
-        lsSet(`mc_quarterly_${activeUserId}`, { data, fileName });
-        saveQuarterlyReturns(activeUserId, data, fileName).catch(() => {
-          toast.warning('Saved locally, but failed to sync quarterly returns to server');
-        });
-      }
+      lsSet('mc_quarterly_global', { data, fileName });
+      saveQuarterlyReturns(data, fileName).catch(() => {
+        toast.warning('Saved locally, but failed to sync quarterly returns to server');
+      });
       toast.success(`Loaded ${ar.equity.length} quarterly return records`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to parse file';
       setQuarterlyError(msg);
       toast.error(msg);
     }
-  }, [activeUserId]);
+  }, []);
 
   const handleExpenseFile = useCallback((buffer: ArrayBuffer, fileName: string) => {
     try {
@@ -398,10 +425,9 @@ function App() {
       return;
     }
 
-    // Save parameters to localStorage
+    // Save parameters to server (per user ID), with localStorage as an offline cache
     if (activeUserId) {
-      lsSet(`mc_params_${activeUserId}`, {
-        user_id: activeUserId,
+      const params = {
         age: Number(age) || 0,
         withdrawal_start_age: Number(withdrawalStartAge) || 0,
         withdrawal_amount: Number(withdrawalAmount) || 0,
@@ -412,6 +438,10 @@ function App() {
         passive_allocation: Number(passiveAllocation) || 0,
         debt_allocation: Number(debtAllocation) || 0,
         alt_allocation: Number(altAllocation) || 0,
+      };
+      lsSet(`mc_params_${activeUserId}`, { user_id: activeUserId, ...params });
+      saveParameters(activeUserId, params).catch(() => {
+        toast.warning('Saved locally, but failed to sync parameters to server');
       });
     }
 
@@ -754,12 +784,10 @@ function App() {
                 onClear={() => {
                   setAssetReturns(null);
                   setQuarterlyFileName('');
-                  if (activeUserId) {
-                    lsDel(`mc_quarterly_${activeUserId}`);
-                    deleteQuarterlyReturns(activeUserId).catch(() => {
-                      toast.warning('Cleared locally, but failed to delete from server');
-                    });
-                  }
+                  lsDel('mc_quarterly_global');
+                  deleteQuarterlyReturns().catch(() => {
+                    toast.warning('Cleared locally, but failed to delete from server');
+                  });
                 }}
                 error={quarterlyError}
               />

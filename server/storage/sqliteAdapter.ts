@@ -9,8 +9,8 @@ import type {
 export class SqliteStorageAdapter implements StorageAdapter {
   constructor(private db: Database) {}
 
-  async getQuarterlyReturns(userId: string): Promise<QuarterlyReturnsPayload | null> {
-    const rows = await this.db.all('SELECT * FROM quarterly_returns WHERE user_id = ?', [userId]);
+  async getQuarterlyReturns(): Promise<QuarterlyReturnsPayload | null> {
+    const rows = await this.db.all('SELECT * FROM quarterly_returns');
     if (rows.length === 0) return null;
 
     return {
@@ -26,16 +26,16 @@ export class SqliteStorageAdapter implements StorageAdapter {
     };
   }
 
-  async saveQuarterlyReturns(userId: string, payload: QuarterlyReturnsPayload): Promise<void> {
+  async saveQuarterlyReturns(payload: QuarterlyReturnsPayload): Promise<void> {
     await this.db.run('BEGIN TRANSACTION');
     try {
-      await this.db.run('DELETE FROM quarterly_returns WHERE user_id = ?', [userId]);
+      await this.db.run('DELETE FROM quarterly_returns');
 
       const stmt = await this.db.prepare(
-        'INSERT INTO quarterly_returns (user_id, date, equity, real_estate, passive_income, debt, alternative, file_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO quarterly_returns (date, equity, real_estate, passive_income, debt, alternative, file_name) VALUES (?, ?, ?, ?, ?, ?, ?)'
       );
       for (const row of payload.data) {
-        await stmt.run(userId, row.date, row.equity, row.realEstate, row.commodity, row.debt, row.alternative, payload.fileName);
+        await stmt.run(row.date, row.equity, row.realEstate, row.commodity, row.debt, row.alternative, payload.fileName);
       }
       await stmt.finalize();
 
@@ -46,8 +46,8 @@ export class SqliteStorageAdapter implements StorageAdapter {
     }
   }
 
-  async deleteQuarterlyReturns(userId: string): Promise<void> {
-    await this.db.run('DELETE FROM quarterly_returns WHERE user_id = ?', [userId]);
+  async deleteQuarterlyReturns(): Promise<void> {
+    await this.db.run('DELETE FROM quarterly_returns');
   }
 
   async getExpenseProfiles(userId: string): Promise<ExpenseProfile[]> {

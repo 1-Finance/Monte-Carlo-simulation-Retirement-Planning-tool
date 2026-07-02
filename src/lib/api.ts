@@ -8,14 +8,15 @@ export interface QuarterlyReturnsResponse {
   fileName?: string;
 }
 
-export async function fetchQuarterlyReturns(userId: string): Promise<QuarterlyReturnsResponse> {
-  const res = await fetch(`${BASE}/quarterly-returns/${encodeURIComponent(userId)}`);
+// Quarterly returns are shared globally across all users, not scoped per user.
+export async function fetchQuarterlyReturns(): Promise<QuarterlyReturnsResponse> {
+  const res = await fetch(`${BASE}/quarterly-returns`);
   if (!res.ok) throw new Error('Failed to fetch quarterly returns');
   return res.json();
 }
 
-export async function saveQuarterlyReturns(userId: string, data: QuarterlyReturnsResponse['data'], fileName: string): Promise<void> {
-  const res = await fetch(`${BASE}/quarterly-returns/${encodeURIComponent(userId)}`, {
+export async function saveQuarterlyReturns(data: QuarterlyReturnsResponse['data'], fileName: string): Promise<void> {
+  const res = await fetch(`${BASE}/quarterly-returns`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data, fileName }),
@@ -23,9 +24,37 @@ export async function saveQuarterlyReturns(userId: string, data: QuarterlyReturn
   if (!res.ok) throw new Error('Failed to save quarterly returns');
 }
 
-export async function deleteQuarterlyReturns(userId: string): Promise<void> {
-  const res = await fetch(`${BASE}/quarterly-returns/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+export async function deleteQuarterlyReturns(): Promise<void> {
+  const res = await fetch(`${BASE}/quarterly-returns`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to delete quarterly returns');
+}
+
+export interface ParametersDTO {
+  age?: number;
+  withdrawal_start_age?: number;
+  withdrawal_amount?: number;
+  withdrawal_year?: number;
+  initial_corpus?: number;
+  equity_allocation?: number;
+  real_estate_allocation?: number;
+  passive_allocation?: number;
+  debt_allocation?: number;
+  alt_allocation?: number;
+}
+
+export async function fetchParameters(userId: string): Promise<ParametersDTO> {
+  const res = await fetch(`${BASE}/parameters/${encodeURIComponent(userId)}`);
+  if (!res.ok) throw new Error('Failed to fetch parameters');
+  return res.json();
+}
+
+export async function saveParameters(userId: string, params: ParametersDTO): Promise<void> {
+  const res = await fetch(`${BASE}/parameters`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, ...params }),
+  });
+  if (!res.ok) throw new Error('Failed to save parameters');
 }
 
 export interface ExpenseProfileDTO {
