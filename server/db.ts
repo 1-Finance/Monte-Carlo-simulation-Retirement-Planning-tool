@@ -11,6 +11,12 @@ export async function initDb() {
     driver: sqlite3.Database
   });
 
+  // WAL lets reads proceed while a write transaction is in flight; busy_timeout makes
+  // any remaining lock conflict retry instead of failing instantly with SQLITE_BUSY —
+  // both matter here since several endpoints read/write concurrently right after login.
+  await db.exec('PRAGMA journal_mode = WAL;');
+  await db.exec('PRAGMA busy_timeout = 5000;');
+
   await db.exec(`
     CREATE TABLE IF NOT EXISTS parameters (
       user_id TEXT PRIMARY KEY,
