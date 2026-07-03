@@ -1,5 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatINRDynamic } from '../lib/formatCurrency';
 
 interface ParameterFormProps {
   age: number | '';
@@ -23,12 +24,6 @@ interface ParameterFormProps {
   setAltAllocation: (v: number | '') => void;
   simulationType: 'expenses' | 'swr';
   setSimulationType: (v: 'expenses' | 'swr') => void;
-}
-
-function formatINR(value: number): string {
-  if (value >= 10000000) return `₹${(value / 10000000).toFixed(2)} Cr`;
-  if (value >= 100000) return `₹${(value / 100000).toFixed(2)} L`;
-  return `₹${value.toLocaleString('en-IN')}`;
 }
 
 const RADIAN = Math.PI / 180;
@@ -78,7 +73,7 @@ export function ParameterForm(props: ParameterFormProps) {
     { label: 'Real Estate', value: realEstateAllocation, setter: setRealEstateAllocation, color: 'var(--color-accent-emerald)', tooltip: 'Property investments' },
     { label: 'Commodity', value: passiveAllocation, setter: setPassiveAllocation, color: 'var(--color-accent-purple)', tooltip: 'Gold, silver, agricultural assets' },
     { label: 'Debt', value: debtAllocation, setter: setDebtAllocation, color: 'var(--color-accent-amber)', tooltip: 'Bonds, fixed deposits' },
-    { label: 'Alternative', value: altAllocation, setter: setAltAllocation, color: 'var(--color-accent-cyan)', tooltip: 'Gold, commodities, crypto' },
+    { label: 'Alternative Investments', value: altAllocation, setter: setAltAllocation, color: 'var(--color-accent-cyan)', tooltip: 'Gold, commodities, crypto' },
   ];
 
   return (
@@ -161,7 +156,7 @@ export function ParameterForm(props: ParameterFormProps) {
             min={0}
           />
           <p className="input-hint" style={{ color: 'var(--color-accent-blue)', fontWeight: 500 }}>
-            {formatINR(initialCorpus)}
+            {formatINRDynamic(Number(initialCorpus) || 0)}
           </p>
         </div>
 
@@ -199,7 +194,7 @@ export function ParameterForm(props: ParameterFormProps) {
                 />
                 <label
                   className="input-label"
-                  style={{ margin: 0, minWidth: 110, color: 'var(--color-text-secondary)' }}
+                  style={{ margin: 0, width: 170, flexShrink: 0, color: 'var(--color-text-secondary)' }}
                   title={a.tooltip}
                 >
                   {a.label}

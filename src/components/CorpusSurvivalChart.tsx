@@ -4,15 +4,7 @@ import {
 } from 'recharts';
 import { Download } from 'lucide-react';
 import type { ChartData } from '../engine/chartCalculations';
-
-function formatDynamicINR(valLakhs: number): string {
-  if (!valLakhs && valLakhs !== 0) return '';
-  const value = valLakhs * 100000;
-  if (value >= 10000000) return `₹${(value / 10000000).toFixed(1).replace(/\.0$/, '')}Cr`;
-  if (value >= 100000) return `₹${(value / 100000).toFixed(1).replace(/\.0$/, '')}L`;
-  if (value >= 1000) return `₹${(value / 1000).toFixed(1).replace(/\.0$/, '')}K`;
-  return `₹${Math.round(value).toLocaleString('en-IN')}`;
-}
+import { formatINRDynamic } from '../lib/formatCurrency';
 
 interface CorpusSurvivalChartProps {
   chartData: ChartData;
@@ -79,7 +71,7 @@ export function CorpusSurvivalChart({ chartData, currentAge, withdrawalAmount = 
 
   const yAxisWidth = useMemo(() => {
     const maxTickValue = yTicks.length > 0 ? yTicks[yTicks.length - 1] : 0;
-    const formattedMax = `₹${(maxTickValue / 10000000).toFixed(1)} cr`;
+    const formattedMax = formatINRDynamic(maxTickValue);
     // ~8px per character + 30px for the rotated label and padding
     return Math.max(80, formattedMax.length * 8 + 30);
   }, [yTicks]);
@@ -91,11 +83,10 @@ export function CorpusSurvivalChart({ chartData, currentAge, withdrawalAmount = 
   const renderCallout = (props: any) => {
     const { viewBox } = props;
     const { x, y } = viewBox;
-    const val = Math.round(corpusValueAtCallout / 10000000);
-    const text = `${calloutAge}, ${val === 0 ? '0' : '₹' + val}`;
-    const boxWidth = 60;
+    const text = `${calloutAge}, ${formatINRDynamic(corpusValueAtCallout)}`;
+    const boxWidth = Math.max(60, text.length * 7 + 16);
     const boxHeight = 26;
-    
+
     return (
       <g style={{ pointerEvents: 'none' }}>
         <polygon points={`${x - 10},${y + 25} ${x},${y + 25} ${x},${y}`} fill="#000" />
@@ -144,7 +135,7 @@ export function CorpusSurvivalChart({ chartData, currentAge, withdrawalAmount = 
       <div ref={chartRef} className="chart-export-area" style={{ paddingTop: '1.5rem', paddingBottom: '1.5rem', backgroundColor: '#fff', border: 'none', outline: 'none', boxShadow: 'none' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.5rem', border: 'none', outline: 'none', background: 'transparent' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#000', margin: '0 0 0.5rem 0', lineHeight: 1.4, border: 'none', outline: 'none', background: 'transparent' }}>
-            Retirement Corpus with {formatDynamicINR(withdrawalAmount)} withdrawal/month starting from {withdrawalYear}
+            Retirement Corpus with {formatINRDynamic(withdrawalAmount * 100000)} withdrawal/month starting from {withdrawalYear}
           </h2>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#000', margin: 0, lineHeight: 1.4, border: 'none', outline: 'none', background: 'transparent' }}>
             (Age={withdrawalStartAge})
@@ -166,11 +157,11 @@ export function CorpusSurvivalChart({ chartData, currentAge, withdrawalAmount = 
                 ticks={yTicks}
                 domain={[0, yTicks.length > 0 ? yTicks[yTicks.length - 1] : 'auto']}
                 label={{ value: 'Retirement Corpus →', angle: -90, position: 'left', offset: 10, style: { fontWeight: 'bold', fontSize: 13, fill: '#333', textAnchor: 'middle' } }}
-                tickFormatter={(value: number) => `₹${(value / 10000000).toFixed(1)}\u00A0cr`}
+                tickFormatter={(value: number) => formatINRDynamic(value)}
                 tick={{ fontSize: 11, fill: '#555' }}
               />
               <Tooltip
-                formatter={(value: number) => [`₹${(value / 10000000).toFixed(2)} cr`, 'Corpus']}
+                formatter={(value: number) => [formatINRDynamic(value), 'Corpus']}
                 labelFormatter={(label: number) => `Age: ${label}`}
                 contentStyle={{ background: '#fff', border: '1px solid #ddd', borderRadius: 8, fontSize: 13 }}
               />
